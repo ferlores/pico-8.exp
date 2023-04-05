@@ -18,7 +18,6 @@ function _init()
 end
 
 function _update()
-    -- TODO don't access players direclty
     for f in all(__update) do
         f()
     end
@@ -43,8 +42,8 @@ players = {}
 register('init', function ()
     add(players, {
         spr = 1,
-        x = 0,
-        y = screen_max-player_width,
+        x = screen_max/2 - player_width,
+        y = screen_max - player_height,
         dx = 0,
         dy = 0,
         speed = player_speed,

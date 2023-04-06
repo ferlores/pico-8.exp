@@ -14,7 +14,7 @@ function logTable(n, t, i)
         if (type(v) == "table") then
             logTable(k, v, i+2)
         else
-            log(ident(i+2)..k..': '..v..',')
+            if (k != nil or v!= nil) log(ident(i+2)..k..': '..v..',')
         end
     end
     log(idt.."}")

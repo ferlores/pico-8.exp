@@ -4,6 +4,8 @@ __lua__
 -- pang
 -- by ferlores
 
+#include utilities.lua
+
 __init, __update, __draw = {}, {}, {}
 function register(cb, f)
     if (cb == 'init') add(__init, f)
@@ -141,10 +143,11 @@ balls = {}
 ball_tp = {
     [1] =  {
         sfx = 0,
-        dx = 0,
-        dy = 3,
+        dx = 1,
+        dy = 0,
         w = 8,
-        h = 8
+        h = 8,
+        bounce = 1
     }
 }
 
@@ -157,6 +160,7 @@ ball_render = {
     [24] = function (x, y) sspr(0, 32, 8, 8, x, y, 24, 24) end,
     [32] = function (x, y) sspr(0, 32, 8, 8, x, y, 32, 32) end
 }
+max_ball_size = 32
 
 -- add_ball
 register('init', function ()
@@ -164,17 +168,44 @@ register('init', function ()
     add(balls, {
         tp = 1,
         x = screen_max/2 - 16,
-        y = screen_max/2 - 16,
+        y = 5,
         dx = bt.dx,
         dy = bt.dy,
         sz = 32
     })
-    logTable("balls", balls)
+    add(balls, {
+        tp = 1,
+        x = 16,
+        y = 5+16,
+        dx = bt.dx,
+        dy = bt.dy,
+        sz = 2
+    })
 end)
 
+-- move_ball
+register('update', function()
+    local gravity = 0.1
+    for b in all(balls) do
+        local btp = ball_tp[b.tp]
+        local newx = b.x + b.dx
+        local newy = b.y + b.dy
 
-function move_ball()
-end
+        -- y axis
+        if (is_offscreen(1, newy, b.sz, b.sz)) then
+            b.dy = -btp.bounce * lerp(1.5, 4, b.sz/max_ball_size)
+        end
+
+        -- x axis
+        if (is_offscreen(newx, 1, b.sz, b.sz)) then
+            b.dx *= -btp.bounce
+        end
+
+        b.x += b.dx
+        b.y += b.dy
+        b.dy += gravity
+    end
+end)
 
 -- draw_ball
 register("draw", function ()
@@ -199,15 +230,26 @@ register('draw', function ()
 end)
 
 function is_offscreen(x, y, w, h)
-    return
+    local res_x =
         x < screen_min or
-        x + w > screen_max or
-        y < screen_min or
+        x + w > screen_max
+
+    local res_y =
+        -- y < screen_min or
         y + h > screen_max
+
+    -- if (res_x) log('X: '..x..", "..w)
+    -- if (res_y) log('Y: '..y..", "..h..", "..screen_max)
+
+    return res_x or res_y
 end
 
+-->8
+-- utilities
 
-#include utilities.lua
+function lerp(min, max, p)
+    return (max-min) * p + min
+end
 
 __gfx__
 00000000000000007700007700000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000

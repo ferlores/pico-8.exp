@@ -156,7 +156,7 @@ balls = {}
 ball_tp = {
     [1] =  {
         sfx = 0,
-        dx = 1,
+        dx = 0,
         dy = 0,
         w = 8,
         h = 8,
@@ -204,12 +204,12 @@ register('update', function()
         local newx = b.x + b.dx
         local newy = b.y + b.dy
 
-        -- y axis
+        -- bounce y axis
         if (is_offscreen(1, newy, b.sz, b.sz)) then
-            b.dy = -btp.bounce * lerp(1.5, 4, b.sz/max_ball_size)
+            b.dy = -btp.bounce * lerp(speed(45), speed(120), b.sz/max_ball_size)
         end
 
-        -- x axis
+        -- bounce x axis
         if (is_offscreen(newx, 1, b.sz, b.sz)) then
             b.dx *= -btp.bounce
         end
@@ -231,6 +231,11 @@ register('update', function()
         else
             b.x += b.dx
             b.y += b.dy
+
+            -- smaller balls move faster in the x axis
+            b.dx = sgn(b.dx) * lerp(speed(25), speed(55), 1/b.sz)
+
+            -- all balls are affected by gravity
             b.dy += gravity
         end
     end
@@ -348,10 +353,11 @@ end)
 
 
 -->8
--- collision
+-- physiscs
 
-function lerp(min, max, p)
-    return (max-min) * p + min
+function lerp(a, b, p)
+    local min = min(a, b)
+    return abs(a-b) * p + min
 end
 
 function rect_collide(x1, y1, w1, h1, x2, y2, w2, h2)
@@ -369,6 +375,10 @@ function rect_collide(x1, y1, w1, h1, x2, y2, w2, h2)
     end
 
     return overlap_x and overlap_y
+end
+
+function speed(pps)
+    return pps/30
 end
 
 __gfx__
@@ -413,4 +423,4 @@ __gfx__
 09994490000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 00999900000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 __sfx__
-000100000a750097500a7500b7500c7500e75011750157501a7501f74023730247202e70009000080000800008000080000000000000000000000000000000000000000000000000000000000000000000000000
+0001000008250097500a7500b7500c7500e75011750157501a7501f74023730247202e70009000080000800008000080000000000000000000000000000000000000000000000000000000000000000000000000

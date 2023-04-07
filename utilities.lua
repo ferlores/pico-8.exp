@@ -4,6 +4,7 @@ function log(msg)
     override = false
 end
 
+log("starting...")
 
 function logTable(n, t, i)
     if (i==nil) i=0

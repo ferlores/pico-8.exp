@@ -88,12 +88,13 @@ max_bullets = 2
 bullets = {}
 weapons = {
     [1] =  {
-        spr = 16,
+        sprx = 0,
+        spry = 8,
         sfx = 0,
         dx = 0,
         dy = 3,
         w = 5,
-        h = 8
+        h = 16
     }
 }
 
@@ -132,8 +133,7 @@ end)
 register('draw', function ()
     for b in all(bullets) do
         local w = weapons[b.tp]
-        spr(w.spr, b.x, b.y)
-        spr(w.spr + 16, b.x, b.y + w.h)
+        sspr(w.sprx, w.spry, w.w, w.h, b.x, b.y)
         add_hud('w:'..b.x..', '..b.y..', '..b.dx..', '..b.dy)
     end
 end)
@@ -153,36 +153,43 @@ ball_tp = {
     }
 }
 
-ball_render = {
-    [2] = function (x, y) spr(66, x, y) end,
-    [4] = function (x, y) spr(65, x, y) end,
-    [8] = function (x, y) spr(64, x, y) end,
-    [12] = function (x, y) sspr(0, 32, 8, 8, x, y, 12, 12) end,
-    [16] = function (x, y) sspr(0, 32, 8, 8, x, y, 16, 16) end,
-    [24] = function (x, y) sspr(0, 32, 8, 8, x, y, 24, 24) end,
-    [32] = function (x, y) sspr(0, 32, 8, 8, x, y, 32, 32) end
+ball_sizes = {
+    [1] = {
+        sz = 2,
+        render = function (x, y) spr(66, x, y) end,
+    },
+    [2] = {
+        sz = 4,
+        render = function (x, y) spr(65, x, y) end,
+    },
+    [3] = {
+        sz = 8,
+        render = function (x, y) spr(64, x, y) end,
+    },
+    [4] = {
+        sz = 12,
+        render = function (x, y) sspr(0, 32, 8, 8, x, y, 12, 12) end,
+    },
+    [5] = {
+        sz = 16,
+        render = function (x, y) sspr(0, 32, 8, 8, x, y, 16, 16) end,
+    },
+    [6] = {
+        sz = 24,
+        render = function (x, y) sspr(0, 32, 8, 8, x, y, 24, 24) end,
+    },
+    [7] = {
+        sz = 32,
+        render = function (x, y) sspr(0, 32, 8, 8, x, y, 32, 32) end
+    },
 }
-max_ball_size = 32
+max_ball_size = ball_sizes[#ball_sizes].sz
 
 -- add_ball
 register('init', function ()
     local bt = ball_tp[1]
-    add(balls, {
-        tp = 1,
-        x = screen_max/2 - 16,
-        y = 5,
-        dx = bt.dx,
-        dy = bt.dy,
-        sz = 32
-    })
-    add(balls, {
-        tp = 1,
-        x = 16,
-        y = 5+16,
-        dx = bt.dx,
-        dy = bt.dy,
-        sz = 2
-    })
+    add_ball(1, 7, screen_max/2 - 16, 5)
+    add_ball(1, 1, 16, 21, 1, 1)
 end)
 
 -- move_ball
@@ -190,7 +197,7 @@ register('update', function()
     local gravity = 0.1
     for i = #balls, 1, -1 do
         local b = balls[i]
-        local btp = ball_tp[b.tp]
+        local btp = ball_tp[b.tpid]
         local newx = b.x + b.dx
         local newy = b.y + b.dy
 
@@ -205,9 +212,9 @@ register('update', function()
         end
 
         if (is_hit_by_bullet(b)) then
-            b.sz = 24
-
-            -- deli(balls, i)
+            if (b.szid - 1 > 0) add_ball(b.tpid, b.szid - 1, b.x, b.y, b.dx, b.dy)
+            del(bullets, b)
+            deli(balls, i)
         end
         -- else
             b.x += b.dx
@@ -220,18 +227,34 @@ end)
 -- draw_ball
 register("draw", function ()
     for b in all(balls) do
-        ball_render[b.sz](b.x, b.y)
+        ball_sizes[b.szid].render(b.x, b.y)
         add_hud('b:'..b.x..', '..b.y..', '..b.dx..', '..b.dy)
     end
 end)
 
 function is_hit_by_bullet(ball)
-    for b in all(bullets) do
-        if (rect_collide(b.x, b.y, b.w, b.h, ball.x, ball.y, ball.sz, ball.sz)) return true
+    for i = #bullets, 1, -1 do
+        local b = bullets[i]
+        if (rect_collide(b.x, b.y, b.w, b.h, ball.x, ball.y, ball.sz, ball.sz)) then
+            deli(bullets, i)
+            return true
+        end
     end
     return false
 end
 
+function add_ball(tpid, szid, x, y, dx, dy)
+    local bt = ball_tp[tpid]
+    add(balls, {
+        tpid = tpid,
+        x = x,
+        y = y,
+        dx = dx or bt.dx,
+        dy = dy or bt.dy,
+        szid = szid,
+        sz = ball_sizes[szid].sz
+    })
+end
 
 -->8
 -- scene

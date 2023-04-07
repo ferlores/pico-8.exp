@@ -118,14 +118,11 @@ end
 register('update', function ()
     for i=#bullets, 1, -1 do
         local b = bullets[i]
-        -- ensures is not nil after we remove a bullet
-        if (b != nil) then
-            b.x = b.x + b.dx
-            b.y = b.y - b.dy
+        b.x = b.x + b.dx
+        b.y = b.y - b.dy
 
-            -- remove bullet
-            if (is_offscreen(b.x, b.y, b.w, b.h)) deli(bullets, i)
-        end
+        -- remove bullet
+        if (is_offscreen(b.x, b.y, b.w, b.h)) deli(bullets, i)
     end
 end)
 

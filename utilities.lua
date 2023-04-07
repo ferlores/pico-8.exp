@@ -40,11 +40,13 @@ function toggle_hud()
     hud_enabled = not hud_enabled
 end
 
+max_hud_msg = 5
 function draw_hud()
     -- if (not hud_enabled) return
     local hud_pos = {2,2}
 
-    for m in all(hud_msgs) do
+    for i=min(max_hud_msg, #hud_msgs) - 1, 0, -1 do
+        local m = hud_msgs[#hud_msgs - i]
         print(m, hud_pos[1], hud_pos[2], 6)
         hud_pos[2] += 8
     end

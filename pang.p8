@@ -212,15 +212,17 @@ register('update', function()
         end
 
         if (is_hit_by_bullet(b)) then
-            if (b.szid - 1 > 0) add_ball(b.tpid, b.szid - 1, b.x, b.y, b.dx, b.dy)
+            if (b.szid - 1 > 0) then
+                add_ball(b.tpid, b.szid - 1, b.x, b.y, b.dx, b.dy)
+                add_ball(b.tpid, b.szid - 1, b.x, b.y, -b.dx, b.dy)
+            end
             del(bullets, b)
             deli(balls, i)
-        end
-        -- else
+        else
             b.x += b.dx
             b.y += b.dy
             b.dy += gravity
-        -- end
+        end
     end
 end)
 
@@ -284,7 +286,13 @@ function is_offscreen(x, y, w, h)
 end
 
 -->8
--- utilities
+-- game
+register('update', function()
+end)
+
+
+-->8
+-- collision
 
 function lerp(min, max, p)
     return (max-min) * p + min

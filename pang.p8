@@ -50,7 +50,10 @@ register('init', function ()
         dy = 0,
         speed = player_speed,
         friction = player_friction,
-        weapon = 1
+        weapon = 1,
+        h = player_height,
+        w = player_width,
+        lifes = 3
     })
 end)
 
@@ -69,18 +72,29 @@ register('update', function ()
     end
 end)
 
-function control_player(p, control)
-    if (btn(⬅️, control)) p.dx -= p.speed
-    if (btn(➡️, control)) p.dx += p.speed
-    if (btnp(❎, control)) add_bullet(p)
-end
-
 -- draw_players
 register('draw', function ()
     for p in all(players) do
         spr(p.spr, p.x, p.y)
     end
 end)
+
+function control_player(p, control)
+    if (btn(⬅️, control)) p.dx -= p.speed
+    if (btn(➡️, control)) p.dx += p.speed
+    if (btnp(❎, control)) add_bullet(p)
+end
+
+function loose_life(p)
+    p.lifes -= 1
+
+    log('life lost')
+    -- if (p.lifes = 0) then
+        -- game_over()
+    -- else
+        restart_level()
+    -- end
+end
 
 -->8
 -- bullets
@@ -182,13 +196,6 @@ ball_sizes = {
 }
 max_ball_size = ball_sizes[#ball_sizes].sz
 
--- add_ball
-register('init', function ()
-    local bt = ball_tp[1]
-    add_ball(1, 7, screen_max/2 - 16, 5)
-    add_ball(1, 1, 16, 21, 1, 1)
-end)
-
 -- move_ball
 register('update', function()
     local gravity = 0.1
@@ -208,12 +215,19 @@ register('update', function()
             b.dx *= -btp.bounce
         end
 
-        if (is_hit_by_bullet(b)) then
+        local pid = is_hit_by_player(b)
+        if (pid != 0) then
+            loose_life(players[pid])
+        end
+
+        local bullet_id = is_hit_by_bullet(b)
+        if (bullet_id != 0) then
             if (b.szid - 1 > 0) then
                 add_ball(b.tpid, b.szid - 1, b.x, b.y, b.dx, b.dy)
                 add_ball(b.tpid, b.szid - 1, b.x, b.y, -b.dx, b.dy)
             end
-            del(bullets, b)
+
+            deli(bullets, bullet_id)
             deli(balls, i)
         else
             b.x += b.dx
@@ -235,11 +249,20 @@ function is_hit_by_bullet(ball)
     for i = #bullets, 1, -1 do
         local b = bullets[i]
         if (rect_collide(b.x, b.y, b.w, b.h, ball.x, ball.y, ball.sz, ball.sz)) then
-            deli(bullets, i)
-            return true
+            return i
         end
     end
-    return false
+    return 0
+end
+
+function is_hit_by_player(ball)
+    for i = #players, 1, -1 do
+        local p = players[i]
+        if (rect_collide(p.x, p.y, p.w, p.h, ball.x, ball.y, ball.sz, ball.sz)) then
+            return i
+        end
+    end
+    return 0
 end
 
 function add_ball(tpid, szid, x, y, dx, dy)
@@ -256,16 +279,43 @@ function add_ball(tpid, szid, x, y, dx, dy)
 end
 
 -->8
--- scene
+-- level
 
 screen_min = 1
 screen_max = 127
+
+levels = {
+    [1] = {
+        balls = {
+            [1] = {
+                tpid = 1,
+                sz = 7,
+                x = screen_max/2 - 16,
+                y= 5
+            }
+        }
+    }
+}
+
+current_level = 1
 
 -- draw_scene
 register('draw', function ()
     rect(0,0,127,127,15)
     draw_hud()
 end)
+
+function restart_level(lid)
+    lid = lid or current_level
+    log('restarting level '..lid)
+
+    -- clean up level
+    balls = {}
+
+    for b in all (levels[lid].balls) do
+        add_ball(b.tpid, b.sz, b.x, b.y)
+    end
+end
 
 function is_offscreen(x, y, w, h)
     local res_x =
@@ -284,8 +334,17 @@ end
 
 -->8
 -- game
-register('update', function()
+
+register('init', function()
+    restart_level()
 end)
+
+
+-- is_playing = false
+-- register('update', function()
+--     if ()
+-- end)
+
 
 
 -->8

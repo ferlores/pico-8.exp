@@ -130,7 +130,7 @@ end
 
 -- move_bullets
 register('update', function ()
-    for i=#bullets, 1, -1 do
+    for i, b in pairs(bullets) do
         local b = bullets[i]
         b.x = b.x + b.dx
         b.y = b.y - b.dy
@@ -199,8 +199,7 @@ max_ball_size = ball_sizes[#ball_sizes].sz
 -- move_ball
 register('update', function()
     local gravity = 0.1
-    for i = #balls, 1, -1 do
-        local b = balls[i]
+    for i, b in pairs(balls) do
         local btp = ball_tp[b.tpid]
         local newx = b.x + b.dx
         local newy = b.y + b.dy

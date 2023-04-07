@@ -92,7 +92,7 @@ function loose_life(p)
     -- if (p.lifes = 0) then
         -- game_over()
     -- else
-        restart_level()
+        -- restart_level()
     -- end
 end
 
@@ -240,8 +240,9 @@ end)
 register("draw", function ()
     for b in all(balls) do
         ball_sizes[b.szid].render(b.x, b.y)
-        add_hud('b:'..b.x..', '..b.y..', '..b.dx..', '..b.dy)
+        -- add_hud('b:'..b.x..', '..b.y..', '..b.dx..', '..b.dy)
     end
+    add_hud('#b: '.. #balls)
 end)
 
 function is_hit_by_bullet(ball)

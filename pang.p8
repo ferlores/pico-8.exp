@@ -106,7 +106,9 @@ function add_bullet(p)
         y = p.y - player_height,
         dx = w.dx,
         dy = w.dy,
-        tp = p.weapon
+        tp = p.weapon,
+        w = w.w,
+        h = w.h
     })
     sfx(w.sfx)
 end
@@ -121,7 +123,7 @@ register('update', function ()
             b.y = b.y - b.dy
 
             -- remove bullet
-            if (is_offscreen(b.x, b.y, weapons[b.tp].w, weapons[b.tp].h)) bullets[i] = nill
+            if (is_offscreen(b.x, b.y, b.w, b.h)) bullets[i] = nill
         end
     end
 end)
@@ -201,9 +203,14 @@ register('update', function()
             b.dx *= -btp.bounce
         end
 
-        b.x += b.dx
-        b.y += b.dy
-        b.dy += gravity
+        if (is_hit_by_bullet(b)) then
+            log('hit')
+        end
+        -- else
+            b.x += b.dx
+            b.y += b.dy
+            b.dy += gravity
+        -- end
     end
 end)
 
@@ -215,6 +222,12 @@ register("draw", function ()
     end
 end)
 
+function is_hit_by_bullet(ball)
+    for b in all(bullets) do
+        if (rect_collide(b.x, b.y, b.w, b.h, ball.x, ball.y, ball.sz, ball.sz)) return true
+    end
+    return false
+end
 
 
 -->8
@@ -249,6 +262,17 @@ end
 
 function lerp(min, max, p)
     return (max-min) * p + min
+end
+
+function rect_collide(x1, y1, w1, h1, x2, y2, w2, h2)
+    local overlap_x, overlap_y = false, false
+    -- x axis
+    if (x1 + w1 >= x2 and x2 <= x2 + w2) overlap_x = true
+
+    -- y axis
+    if (y1 + h1 >= y2 and y2 <= y2 + h2) overlap_y = true
+
+    return overlap_x and overlap_y
 end
 
 __gfx__

@@ -6,28 +6,52 @@ __lua__
 
 #include utilities.lua
 
-__init, __update, __draw = {}, {}, {}
-function register(cb, f)
-    if (cb == 'init') add(__init, f)
-    if (cb == 'update') add(__update, f)
-    if (cb == 'draw') add(__draw, f)
+__callbacks = {
+    ['init'] = {
+        ['default'] = {}
+    },
+    ['update'] = {
+        ['default'] = {}
+    },
+    ['draw'] = {
+        ['default'] = {}
+    },
+    ['destroy'] = {
+        ['default'] = {}
+    }
+}
+current_mode = 'default'
+
+function register(cb, mode, f)
+    if (type(mode) == 'function') then
+        f = mode
+        mode = 'default'
+    end
+
+    if (__callbacks[cb][mode] == nil) __callbacks[cb][mode] = {}
+    add(__callbacks[cb][mode], f)
+end
+
+function switch_mode(mode)
+    current_mode = mode
+    exec_table(__callbacks['init'][current_mode])
 end
 
 function _init()
-    for f in all(__init) do
-        f()
-    end
+    game_start()
 end
 
 function _update()
-    for f in all(__update) do
-        f()
-    end
+    exec_table(__callbacks['update'][current_mode])
 end
 
 function _draw()
     cls()
-    for f in all(__draw) do
+    exec_table(__callbacks['draw'][current_mode])
+end
+
+function exec_table(t)
+    for f in all(t) do
         f()
     end
 end
@@ -39,23 +63,6 @@ player_friction = 0.3
 player_width = 8
 player_height = 8
 players = {}
-
--- add_players
-register('init', function ()
-    add(players, {
-        spr = 1,
-        x = screen_max/2 - player_width,
-        y = screen_max - player_height,
-        dx = 0,
-        dy = 0,
-        speed = player_speed,
-        friction = player_friction,
-        weapon = 1,
-        h = player_height,
-        w = player_width,
-        lifes = 3
-    })
-end)
 
 -- move_players
 register('update', function ()
@@ -88,12 +95,25 @@ end
 function loose_life(p)
     p.lifes -= 1
 
-    log('life lost')
-    -- if (p.lifes = 0) then
-        -- game_over()
-    -- else
-        -- restart_level()
-    -- end
+    if (p.lifes == 0) then
+        switch_mode('main_menu')
+    end
+end
+
+function add_player(x, y)
+    add(players, {
+        spr = 1,
+        x = x,
+        y = y or screen_max - player_height,
+        dx = 0,
+        dy = 0,
+        speed = player_speed,
+        friction = player_friction,
+        weapon = 1,
+        h = player_height,
+        w = player_width,
+        lifes = 3
+    })
 end
 
 -->8
@@ -310,6 +330,11 @@ register('draw', function ()
     draw_hud()
 end)
 
+register('init', function ()
+    restart_level()
+end)
+
+
 function restart_level(lid)
     lid = lid or current_level
     log('restarting level '..lid)
@@ -338,18 +363,31 @@ function is_offscreen(x, y, w, h)
 end
 
 -->8
--- game
-
-register('init', function()
-    restart_level()
+-- menus
+register('init', 'main_menu', function ()
+    players = {}
 end)
 
 
--- is_playing = false
--- register('update', function()
---     if ()
--- end)
+register('draw', 'main_menu', function()
+    print('pang', screen_max/2 - 5, 50)
+    print('game over', screen_max/2 - 15, 60)
+    print('press ❎ to start', screen_max/2 - 30, 70)
+end)
 
+register('update', 'main_menu', function()
+    if(btnp(❎, 0)) then
+        add_player(screen_max/2 - player_width)
+        switch_mode('default')
+    end
+end)
+
+-->8
+-- game
+
+function game_start()
+    switch_mode('main_menu')
+end
 
 
 -->8

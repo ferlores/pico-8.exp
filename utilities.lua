@@ -1,15 +1,24 @@
-override = true
-function log(msg)
-    if (type(msg) == 'table') then
-        logTable(msg)
-    else
-        printh(msg, "log.txt", override, true)
+function log(...)
+    local args = {...}
+    local msg = ''
+
+    for v in all(args) do
+        if (type(v) == 'table') then
+            logTable(v)
+            msg = ''
+        else
+            msg = msg..' '..v
+        end
     end
 
-    override = false
+    log_to_file(msg)
 end
 
-log("starting...")
+override = true
+function log_to_file(msg)
+    printh(msg, 'log.txt', override, true)
+    override = false
+end
 
 function logTable(n, t, i)
     if (i == nil) i=0
@@ -58,3 +67,5 @@ function draw_hud()
     end
     hud_msgs = {}
 end
+
+log("starting...")

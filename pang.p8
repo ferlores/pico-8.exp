@@ -64,16 +64,19 @@ player_width = 8
 player_height = 8
 players = {}
 
--- move_players
+-- update_players
 register('update', function ()
     control_player(players[1], 0)
 
     for p in all(players) do
+        -- move_player
         p.x = mid(screen_min, p.x + p.dx, screen_max - player_width)
         p.y += p.dy
 
         p.dx *= (1 - p.friction)
         p.dy *= (1 - p.friction)
+
+        advance_pwups(p)
 
         add_hud('p:'..p.x..', '..p.y..', '..p.dx..', '..p.dy)
     end
@@ -92,11 +95,20 @@ function control_player(p, control)
     if (btnp(❎, control)) add_bullet(p)
 end
 
-function loose_life(p)
-    p.lifes -= 1
+function loose_live(p)
+    p.lives -= 1
+    p.pwups.respawn = 1 * 30 -- 1 sec
 
-    if (p.lifes == 0) then
+    log('loose live', p)
+    if (p.lives == 0) then
         switch_mode('main_menu')
+    end
+end
+
+function advance_pwups(p)
+    for k, _ in pairs(p.pwups) do
+        p.pwups[k] = max(0, p.pwups[k]-1)
+
     end
 end
 
@@ -112,9 +124,12 @@ function add_player(x, y)
         weapon = 1,
         h = player_height,
         w = player_width,
-        lifes = 3,
-        max_lifes = 3,
-        points = 0
+        lives = 3,
+        max_lives = 3,
+        points = 0,
+        pwups = {
+            respawn = 0
+        }
     })
 end
 
@@ -239,7 +254,11 @@ register('update', function()
 
         local pid = is_hit_by_player(b)
         if (pid != 0) then
-            loose_life(players[pid])
+            local pwups = players[pid].pwups
+            if (pwups.respawn == 0) then
+                log('loose', p)
+                loose_live(players[pid])
+            end
         end
 
         local bullet_id = is_hit_by_bullet(b)
@@ -326,8 +345,8 @@ levels = {
     }
 }
 current_level = 1
-lifes_spr = 14
-lifes_spr_w = 7
+lives_spr = 14
+lives_spr_w = 7
 
 -- draw_scene
 register('draw', function ()
@@ -339,7 +358,7 @@ register('draw', function ()
     camera(-1, -1)
     if (p1) then
         spr(p1.spr, 2, 0)
-        draw_lifes(p1.w + 4, 1, p1.lifes, p1.max_lifes)
+        draw_lives(p1.w + 4, 1, p1.lives, p1.max_lives)
     end
     print(p1.points, 4, 10)
     camera()
@@ -350,11 +369,11 @@ register('draw', function ()
     -- draw_hud()
 end)
 
-function draw_lifes(x, y, lifes, max_lifes)
-    for i = 0, (max_lifes - 1)  do
-        local life_spr = lifes_spr
-        if (i > lifes) life_spr += 1
-        spr(life_spr, x + (i * (lifes_spr_w + 2)), y)
+function draw_lives(x, y, lives, max_lives)
+    for i = 1, max_lives  do
+        local lspr = lives_spr
+        if (i > lives) lspr += 1
+        spr(lspr, x + (i * (lives_spr_w + 2)), y)
     end
 end
 
@@ -368,7 +387,7 @@ end)
 
 function restart_level(lid)
     lid = lid or current_level
-    log('restarting level '..lid)
+    log('restarting level ', lid)
 
     -- clean up level
     balls = {}

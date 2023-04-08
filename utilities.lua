@@ -58,7 +58,7 @@ end
 
 max_hud_msg = 5
 function draw_hud()
-    local hud_pos = {2,30}
+    local hud_pos = {10,30}
 
     for i=min(max_hud_msg, #hud_msgs) - 1, 0, -1 do
         local m = hud_msgs[#hud_msgs - i]

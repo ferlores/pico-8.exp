@@ -85,7 +85,8 @@ end)
 -- draw_players
 register('draw', function ()
     for p in all(players) do
-        spr(p.spr, p.x, p.y)
+        local m = p.pwups.respawn % 6
+        if (m < 3) spr(p.spr, p.x, p.y)
     end
 end)
 

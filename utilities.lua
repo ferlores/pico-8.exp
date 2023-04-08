@@ -29,21 +29,15 @@ function ident(n)
     return s
 end
 
-hud_enabled = true
 hud_msgs = {}
 
 function add_hud(msg)
     add(hud_msgs, msg)
 end
 
-function toggle_hud()
-    hud_enabled = not hud_enabled
-end
-
 max_hud_msg = 5
 function draw_hud()
-    -- if (not hud_enabled) return
-    local hud_pos = {2,2}
+    local hud_pos = {2,30}
 
     for i=min(max_hud_msg, #hud_msgs) - 1, 0, -1 do
         local m = hud_msgs[#hud_msgs - i]

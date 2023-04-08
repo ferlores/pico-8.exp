@@ -1,16 +1,28 @@
 override = true
 function log(msg)
-    printh(msg, "log.txt", override, true)
+    if (type(msg) == 'table') then
+        logTable(msg)
+    else
+        printh(msg, "log.txt", override, true)
+    end
+
     override = false
 end
 
 log("starting...")
 
 function logTable(n, t, i)
-    if (i==nil) i=0
+    if (i == nil) i=0
+    if (t == nil) then
+        t = n
+        n = ''
+    else
+        n = n..': '
+    end
+
     local idt = ident(i)
 
-    log(idt..n..": {")
+    log(idt..n.."{")
     for k,v in pairs(t) do
         if (type(v) == "table") then
             logTable(k, v, i+2)

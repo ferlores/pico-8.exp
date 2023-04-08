@@ -113,7 +113,8 @@ function add_player(x, y)
         h = player_height,
         w = player_width,
         lifes = 3,
-        max_lifes = 3
+        max_lifes = 3,
+        points = 0
     })
 end
 
@@ -144,7 +145,8 @@ function add_bullet(p)
         dy = w.dy,
         tp = p.weapon,
         w = w.w,
-        h = w.h
+        h = w.h,
+        p = p -- player
     })
     sfx(w.sfx)
 end
@@ -247,6 +249,7 @@ register('update', function()
                 add_ball(b.tpid, b.szid - 1, b.x, b.y, -b.dx, b.dy)
             end
 
+            bullets[bullet_id].p.points += (#ball_sizes + 1 - b.szid) * 50
             deli(bullets, bullet_id)
             deli(balls, i)
         else
@@ -315,7 +318,7 @@ levels = {
         balls = {
             [1] = {
                 tpid = 1,
-                sz = 7,
+                sz = 4,
                 x = screen_max/2 - 16,
                 y= 5
             }
@@ -333,18 +336,18 @@ register('draw', function ()
 
     -- draw dashboard
     -- origin coordinates
-    local dx0 = 1
-    local dy0 = 1
-
+    camera(-1, -1)
     if (p1) then
-        spr(p1.spr, dx0 + 2, dy0)
-        draw_lifes(dx0 + p1.w + 4, dy0 + 1, p1.lifes, p1.max_lifes)
+        spr(p1.spr, 2, 0)
+        draw_lifes(p1.w + 4, 1, p1.lifes, p1.max_lifes)
     end
+    print(p1.points, 4, 10)
+    camera()
 
     -- draw boundaries - TODO replace for tiles
     rect(0,0,127,127,15)
 
-    draw_hud()
+    -- draw_hud()
 end)
 
 function draw_lifes(x, y, lifes, max_lifes)

@@ -360,12 +360,10 @@ register('draw', function ()
     if (p1) then
         spr(p1.spr, 2, 0)
         print(p1.points, 12, 2)
-        draw_lives(-7, p1.h + 2, p1.lives, p1.max_lives)
+        draw_lives(-7, p1.h + 2, p1)
     end
     camera()
 
-    -- draw boundaries - TODO replace for tiles
-    -- rect(0,0,127,127,15)
     for i = 0, 16 do
         if (i * 8 >= screen_min_y) then
             spr(61, screen_min_x - 4, i * 8)
@@ -378,11 +376,17 @@ register('draw', function ()
     -- draw_hud()
 end)
 
-function draw_lives(x, y, lives, max_lives)
+function draw_lives(x, y, p)
+    local m = p.pwups.respawn.v % 6
+    local lives, max_lives = p.lives, p.max_lives
+
     for i = 1, max_lives  do
         local lspr = lives_spr
         if (i > lives) lspr += 1
-        spr(lspr, x + (i * (lives_spr_w + 2)), y)
+
+        if (m < 3) then
+            spr(lspr, x + (i * (lives_spr_w + 2)), y)
+        end
     end
 end
 

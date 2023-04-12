@@ -132,7 +132,7 @@ end
 
 -->8
 -- bullets
-max_bullets = 2
+max_bullets = 1
 bullets = {}
 weapons = {
     [1] =  {
@@ -154,8 +154,8 @@ function fire_bullet(p)
 
     local w = weapons[p.weapon]
     add(bullets, {
-        x = p.x,
-        y = p.y - player_height,
+        x = p.x + player_width/2 - w.w/2,
+        y = p.y - player_height - 5,
         dx = w.dx,
         dy = w.dy,
         tp = p.weapon,

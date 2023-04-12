@@ -68,17 +68,39 @@ players = {}
 -- update_players
 register('update', function ()
     control_player(players[1], 0)
+    local all_players_died = true
 
     for p in all(players) do
         -- move_player
-        p.x = mid(screen_min_x, p.x + p.dx, screen_max_x - player_width)
-        p.y += p.dy
+        if (p.dying != nil) then
+            local radius = 5
+            -- local progress = lerp(0, 0.75, 1 - p.dying.v/p.dying.m)
+            -- p.x = p.dx + (cos(progress) - 1) * radius
+            -- p.y = p.dy + sin(progress) * radius
 
-        p.dx *= (1 - p.friction)
-        p.dy *= (1 - p.friction)
+            local progress = lerp(0, 3, 1 - p.dying.v/p.dying.m)
+
+            p.x = p.dx + progress * radius
+            p.y = p.dy + ((progress-1)^2 - 1) * radius
+
+            if (p.dying.v > 0) all_players_died = false
+            log(p.x, p.y, p.dx, p.dy, progress, ((progress-1)^2 - 1))
+        else
+            all_players_died = false
+            p.x = mid(screen_min_x, p.x + p.dx, screen_max_x - player_width)
+            p.y += p.dy
+
+            p.dx *= (1 - p.friction)
+            p.dy *= (1 - p.friction)
+        end
 
         add_hud('p:'..p.x..', '..p.y..', '..p.dx..', '..p.dy)
     end
+
+    if (all_players_died) then
+        switch_mode('main_menu')
+    end
+
 end)
 
 -- draw_players
@@ -93,6 +115,7 @@ register('draw', function ()
 end)
 
 function control_player(p, control)
+    if (p.dying != nil) return
     if (btn(⬅️, control)) p.dx -= p.speed
     if (btn(➡️, control)) p.dx += p.speed
     if (btnp(❎, control)) fire_bullet(p)
@@ -102,9 +125,11 @@ function loose_live(p)
     p.lives -= 1
     p.pwups.respawn = timer(1)
 
-    log('loose live', p)
     if (p.lives == 0) then
-        switch_mode('main_menu')
+        p.dying = timer(0.75)
+        -- dx has the initial position
+        p.dx = p.x
+        p.dy = p.y
     end
 end
 
@@ -126,7 +151,8 @@ function add_player(x, y)
         pwups = {
             respawn = timer(0)
         },
-        firing = timer(0)
+        firing = timer(0),
+        dying = nil
     })
 end
 
@@ -255,7 +281,6 @@ register('update', function()
         if (pid != 0) then
             local pwups = players[pid].pwups
             if (pwups.respawn.v == 0) then
-                log('loose', p)
                 loose_live(players[pid])
             end
         end
@@ -463,8 +488,7 @@ end
 -- physiscs
 
 function lerp(a, b, p)
-    local min = min(a, b)
-    return abs(a-b) * p + min
+    return (b - a) * p + a
 end
 
 function rect_collide(x1, y1, w1, h1, x2, y2, w2, h2)
@@ -490,7 +514,10 @@ end
 
 timers = {}
 function timer(v)  -- v in seconds
-    add(timers, {v = v * 30})
+    add(timers, {
+        v = v * 30,
+        m = v * 30
+    })
     return timers[#timers]
 end
 

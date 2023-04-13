@@ -6,26 +6,29 @@ __lua__
 
 #include utilities.lua
 
+
+default_mode = '__default'
+current_mode = nil
 __callbacks = {
     ['init'] = {
-        ['default'] = {}
+        [default_mode] = {}
     },
     ['update'] = {
-        ['default'] = {}
+        [default_mode] = {}
     },
     ['draw'] = {
-        ['default'] = {}
+        [default_mode] = {}
     },
     ['destroy'] = {
-        ['default'] = {}
+        [default_mode] = {}
     }
 }
-current_mode = 'default'
+
 
 function register(cb, mode, f)
     if (type(mode) == 'function') then
         f = mode
-        mode = 'default'
+        mode = default_mode
     end
 
     if (__callbacks[cb][mode] == nil) __callbacks[cb][mode] = {}
@@ -33,22 +36,25 @@ function register(cb, mode, f)
 end
 
 function switch_mode(mode)
+    if (mode == current_mode) return
+
     current_mode = mode
-    exec_table(__callbacks['init'][current_mode])
+    if (current_mode != nil) exec_table(__callbacks['init'][current_mode])
 end
 
 function _init()
-    game_start()
+    exec_table(__callbacks['init'][default_mode])
 end
 
 function _update()
-    exec_table(__callbacks['update'][current_mode])
-    _move_timers() -- always move timers
+    exec_table(__callbacks['update'][default_mode])
+    if (current_mode != nil) exec_table(__callbacks['update'][current_mode])
 end
 
 function _draw()
     cls()
-    exec_table(__callbacks['draw'][current_mode])
+    exec_table(__callbacks['draw'][default_mode])
+    if (current_mode != nil)  exec_table(__callbacks['draw'][current_mode])
 end
 
 function exec_table(t)
@@ -66,7 +72,7 @@ player_height = 8
 players = {}
 
 -- update_players
-register('update', function ()
+register('update', 'level', function ()
     control_player(players[1], 0)
     local all_players_died = true
 
@@ -84,7 +90,6 @@ register('update', function ()
             p.y = p.dy + ((progress-1)^2 - 1) * radius
 
             if (p.dying.v > 0) all_players_died = false
-            log(p.x, p.y, p.dx, p.dy, progress, ((progress-1)^2 - 1))
         else
             all_players_died = false
             p.x = mid(screen_min_x, p.x + p.dx, screen_max_x - player_width)
@@ -98,13 +103,14 @@ register('update', function ()
     end
 
     if (all_players_died) then
+        log('all players died')
         switch_mode('main_menu')
     end
 
 end)
 
 -- draw_players
-register('draw', function ()
+register('draw', 'level', function ()
     for p in all(players) do
         local m = p.pwups.respawn.v % 6
         local f = flr(p.firing.v / 5)
@@ -193,7 +199,7 @@ function fire_bullet(p)
 end
 
 -- move_bullets
-register('update', function ()
+register('update', 'level', function ()
     for i, b in pairs(bullets) do
         local b = bullets[i]
         b.x = b.x + b.dx
@@ -205,7 +211,7 @@ register('update', function ()
 end)
 
 -- draw_bullets
-register('draw', function ()
+register('draw', 'level', function ()
     for b in all(bullets) do
         local w = weapons[b.tp]
         sspr(w.sprx, w.spry, w.w, w.h, b.x, b.y)
@@ -260,7 +266,7 @@ add(ball_sizes, {
 max_ball_size = ball_sizes[#ball_sizes].sz
 
 -- move_ball
-register('update', function()
+register('update', 'level', function()
     local gravity = 0.1
     for i, b in pairs(balls) do
         local btp = ball_tp[b.tpid]
@@ -309,7 +315,7 @@ register('update', function()
 end)
 
 -- draw_ball
-register("draw", function ()
+register('draw', 'level', function ()
     for b in all(balls) do
         ball_sizes[b.szid].render(b.x, b.y)
         -- add_hud('b:'..b.x..', '..b.y..', '..b.dx..', '..b.dy)
@@ -375,7 +381,7 @@ lives_spr = 14
 lives_spr_w = 7
 
 -- draw_scene
-register('draw', function ()
+register('draw', 'level', function ()
     local p1 = players[1]
     local p2 = players[2]
 
@@ -419,7 +425,7 @@ function ofst(x, y)
     return x + dashboard_offset_x, y + dashboard_offset_y
 end
 
-register('init', function ()
+register('init', 'level', function ()
     restart_level()
 end)
 
@@ -472,16 +478,21 @@ end
 register('update', 'main_menu', function()
     if(btnp(❎, 0)) then
         add_player(screen_max_x/2 - player_width)
-        switch_mode('default')
+        switch_mode('level')
     end
 end)
 
 -->8
 -- game
 
-function game_start()
+register('init', function ()
     switch_mode('main_menu')
-end
+end)
+
+register('update', function ()
+    _move_timers() -- always move timers
+end)
+
 
 
 -->8
@@ -506,6 +517,9 @@ function rect_collide(x1, y1, w1, h1, x2, y2, w2, h2)
     end
 
     return overlap_x and overlap_y
+end
+
+function circ_collide(x1, y1, w1, h1, x2, y2, w2, h2)
 end
 
 function speed(pps)

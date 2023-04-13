@@ -6,6 +6,9 @@ __lua__
 
 #include utilities.lua
 
+-- debug flags
+draw_shapes = false
+
 
 default_mode = '__default'
 current_mode = nil
@@ -117,6 +120,9 @@ register('draw', 'level', function ()
 
         local lspr = p.spr + f
         if (m < 3) spr(lspr, p.x, p.y)
+
+        -- draw player shape
+        if (draw_shapes) rect(p.x, p.y, p.x + p.w, p.y + p.h)
     end
 end)
 
@@ -206,7 +212,7 @@ register('update', 'level', function ()
         b.y = b.y - b.dy
 
         -- remove bullet
-        if (is_offscreen(b.x, b.y, b.w, b.h)) deli(bullets, i)
+        if (rect_is_offscreen(b.x, b.y, b.w, b.h)) deli(bullets, i)
     end
 end)
 
@@ -215,6 +221,10 @@ register('draw', 'level', function ()
     for b in all(bullets) do
         local w = weapons[b.tp]
         sspr(w.sprx, w.spry, w.w, w.h, b.x, b.y)
+
+        -- draw bullet shape
+        if (draw_shapes) rect(b.x, b.y, b.x + w.w, b.y + w.h)
+
         add_hud('w:'..b.x..', '..b.y..', '..b.dx..', '..b.dy)
     end
 end)
@@ -240,28 +250,28 @@ ball_sizes = {}
 --     render = function (x, y) spr(66, x, y) end,
 -- })
 add(ball_sizes, {
+    sz = 2,
+    render = function (x, y) spr(65, x-2, y-2) end,
+})
+add(ball_sizes, {
     sz = 4,
-    render = function (x, y) spr(65, x, y) end,
+    render = function (x, y) spr(64, x-4, y-4) end,
+})
+add(ball_sizes, {
+    sz = 6,
+    render = function (x, y) sspr(0, 32, 8, 8, x-6, y-6, 12, 12) end,
 })
 add(ball_sizes, {
     sz = 8,
-    render = function (x, y) spr(64, x, y) end,
+    render = function (x, y) sspr(0, 32, 8, 8, x-8, y-8, 16, 16) end,
 })
 add(ball_sizes, {
     sz = 12,
-    render = function (x, y) sspr(0, 32, 8, 8, x, y, 12, 12) end,
+    render = function (x, y) sspr(0, 32, 8, 8, x-12, y-12, 24, 24) end,
 })
 add(ball_sizes, {
     sz = 16,
-    render = function (x, y) sspr(0, 32, 8, 8, x, y, 16, 16) end,
-})
-add(ball_sizes, {
-    sz = 24,
-    render = function (x, y) sspr(0, 32, 8, 8, x, y, 24, 24) end,
-})
-add(ball_sizes, {
-    sz = 32,
-    render = function (x, y) sspr(0, 32, 8, 8, x, y, 32, 32) end
+    render = function (x, y) sspr(0, 32, 8, 8, x-16, y-16, 32, 32) end
 })
 max_ball_size = ball_sizes[#ball_sizes].sz
 
@@ -274,12 +284,12 @@ register('update', 'level', function()
         local newy = b.y + b.dy
 
         -- bounce y axis
-        if (is_offscreen(-1, newy, b.sz, b.sz)) then
-            b.dy = -btp.bounce * lerp(speed(45), speed(120), b.sz/max_ball_size)
+        if (circ_is_offscreen(-1, newy, b.sz)) then
+            b.dy = -btp.bounce * lerp(speed(45), speed(105), b.sz/max_ball_size)
         end
 
         -- bounce x axis
-        if (is_offscreen(newx, -1, b.sz, b.sz)) then
+        if (circ_is_offscreen(newx, -1, b.sz)) then
             b.dx *= -btp.bounce
         end
 
@@ -318,6 +328,10 @@ end)
 register('draw', 'level', function ()
     for b in all(balls) do
         ball_sizes[b.szid].render(b.x, b.y)
+
+        -- draw ball shape
+        if (draw_shapes) circ(b.x,b.y, ball_sizes[b.szid].sz)
+
         -- add_hud('b:'..b.x..', '..b.y..', '..b.dx..', '..b.dy)
     end
     add_hud('#b: '.. #balls)
@@ -326,7 +340,7 @@ end)
 function is_hit_by_bullet(ball)
     for i = #bullets, 1, -1 do
         local b = bullets[i]
-        if (rect_collide(b.x, b.y, b.w, b.h, ball.x, ball.y, ball.sz, ball.sz)) then
+        if (rect_circ_collide(b.x, b.y, b.w, b.h, ball.x, ball.y, ball.sz)) then
             return i
         end
     end
@@ -336,7 +350,7 @@ end
 function is_hit_by_player(ball)
     for i = #players, 1, -1 do
         local p = players[i]
-        if (rect_collide(p.x, p.y, p.w, p.h, ball.x, ball.y, ball.sz, ball.sz)) then
+        if (rect_circ_collide(p.x, p.y, p.w, p.h, ball.x, ball.y, ball.sz)) then
             return i
         end
     end
@@ -369,8 +383,8 @@ levels = {
         balls = {
             [1] = {
                 tpid = 1,
-                szid = 5,
-                x = screen_max_x/2 - 16,
+                szid = #ball_sizes - 1,
+                x = screen_max_x/2,
                 y= screen_min_y + 40
             }
         }
@@ -441,7 +455,7 @@ function restart_level(lid)
     end
 end
 
-function is_offscreen(x, y, w, h)
+function rect_is_offscreen(x, y, w, h)
     local res_x =
         x != -1 and --disable this coordinate
         ( x < screen_min_x or
@@ -452,8 +466,19 @@ function is_offscreen(x, y, w, h)
         ( y < screen_min_y or
         y + h > screen_max_y )
 
-    -- if (res_x) log('is_offscreen X: '..x..", "..w)
-    -- if (res_y) log('is_offscreen Y: '..y..", "..h)
+    return res_x or res_y
+end
+
+function circ_is_offscreen(x, y, r)
+    local res_x =
+        x != -1 and --disable this coordinate
+        ( x - r < screen_min_x or
+        x + r > screen_max_x )
+
+    local res_y =
+        y != -1 and --disable this coordinate
+        ( y - r < screen_min_y or
+        y + r > screen_max_y )
 
     return res_x or res_y
 end
@@ -502,7 +527,7 @@ function lerp(a, b, p)
     return (b - a) * p + a
 end
 
-function rect_collide(x1, y1, w1, h1, x2, y2, w2, h2)
+function rect_rect_collide(x1, y1, w1, h1, x2, y2, w2, h2)
     local overlap_x, overlap_y = false, false
     -- x axis
     if (x1 + w1 >= x2 and x1 <= x2 + w2) then
@@ -519,7 +544,30 @@ function rect_collide(x1, y1, w1, h1, x2, y2, w2, h2)
     return overlap_x and overlap_y
 end
 
-function circ_collide(x1, y1, w1, h1, x2, y2, w2, h2)
+function rect_circ_collide(x1, y1, w, h, x2, y2, r)
+    local closest_x, closest_y = nil, nil  -- closest rect points to circ
+
+    if (x2 < x1) then
+        closest_x = x1 -- left edge is closest
+    elseif (x2 > x1 + w) then
+        closest_x = x1 + w -- right edge is closest
+    else
+        closest_x = x2 -- circle center is within the edges
+    end
+
+    if (y2 < y1) then
+        closest_y = y1 -- left edge is closest
+    elseif (y2 > y1 + h) then
+        closest_y = y1 + h -- right edge is closest
+    else
+        closest_y = y2 -- circle center is within the edges
+    end
+
+    local dist_x = x2 - closest_x
+    local dist_y = y2 - closest_y
+    local distance = sqrt(dist_x^2 + dist_y^2)
+
+    return distance <= r
 end
 
 function speed(pps)

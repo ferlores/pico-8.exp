@@ -1,20 +1,40 @@
 -- debug flags
 draw_shapes = false
 
--- player
+register('init', 'level', function ()
+    restart_level(1)
+end)
+
+register('update', 'level', function()
+    update_level()
+    move_players()
+    move_bullets()
+    move_balls()
+end)
+
+register('draw', 'level', function()
+    draw_players()
+    draw_bullets()
+    draw_balls()
+    draw_level()
+end)
+
+
+-------------
+-- players
+-------------
 player_speed = 0.5
 player_friction = 0.3
 player_width = 8
 player_height = 8
 players = {}
 
--- update_players
-register('update', 'level', function ()
+function move_players()
     control_player(players[1], 0)
     local all_players_died = true
 
     for p in all(players) do
-        -- move_player
+        -- dying animation
         if (p.dying != nil) then
             local radius = 5
             local progress = lerp(0, 3, 1 - p.dying.v/p.dying.m)
@@ -49,8 +69,6 @@ register('update', 'level', function ()
                 p.dy = p.y
             end
         end
-
-
     end
 
     if (all_players_died) then
@@ -58,21 +76,7 @@ register('update', 'level', function ()
         switch_mode('main_menu')
     end
 
-end)
-
--- draw_players
-register('draw', 'level', function ()
-    for p in all(players) do
-        local m = p.pwups.respawn.v % 6
-        local f = flr(p.firing.v / 5)
-
-        local lspr = p.spr + f
-        if (m < 3) spr(lspr, p.x, p.y)
-
-        -- draw player shape
-        if (draw_shapes) rect(p.x, p.y, p.x + p.w, p.y + p.h)
-    end
-end)
+end
 
 function control_player(p, control)
     if (p.dying != nil) return
@@ -111,8 +115,23 @@ function add_player(x, y)
     })
 end
 
--->8
+function draw_players()
+    for p in all(players) do
+        local m = p.pwups.respawn.v % 6
+        local f = flr(p.firing.v / 5)
+
+        local lspr = p.spr + f
+        if (m < 3) spr(lspr, p.x, p.y)
+
+        -- draw player shape
+        if (draw_shapes) rect(p.x, p.y, p.x + p.w, p.y + p.h)
+    end
+end
+
+
+------------
 -- bullets
+------------
 max_bullets = 1
 bullets = {}
 weapons = {
@@ -147,8 +166,7 @@ function fire_bullet(p)
     sfx(w.sfx)
 end
 
--- move_bullets
-register('update', 'level', function ()
+function move_bullets()
     for i, b in pairs(bullets) do
         local b = bullets[i]
         b.x = b.x + b.dx
@@ -157,10 +175,9 @@ register('update', 'level', function ()
         -- remove bullet
         if (rect_is_offscreen(b.x, b.y, b.w, b.h)) deli(bullets, i)
     end
-end)
+end
 
--- draw_bullets
-register('draw', 'level', function ()
+function draw_bullets()
     for b in all(bullets) do
         local w = weapons[b.tp]
         sspr(w.sprx, w.spry, w.w, w.h, b.x, b.y)
@@ -170,11 +187,11 @@ register('draw', 'level', function ()
 
         add_hud('w:'..b.x..', '..b.y..', '..b.dx..', '..b.dy)
     end
-end)
+end
 
--->8
+-----------
 -- balls
-
+-----------
 balls = {}
 ball_tp = {
     [1] =  {
@@ -218,8 +235,7 @@ add(ball_sizes, {
 })
 max_ball_size = ball_sizes[#ball_sizes].sz
 
--- move_ball
-register('update', 'level', function()
+function move_balls()
     local gravity = 0.1
     for i, b in pairs(balls) do
         local btp = ball_tp[b.tpid]
@@ -257,10 +273,9 @@ register('update', 'level', function()
             b.dy += gravity
         end
     end
-end)
+end
 
--- draw_ball
-register('draw', 'level', function ()
+function draw_balls()
     for b in all(balls) do
         ball_sizes[b.szid].render(b.x, b.y)
 
@@ -270,7 +285,7 @@ register('draw', 'level', function ()
         -- add_hud('b:'..b.x..', '..b.y..', '..b.dx..', '..b.dy)
     end
     add_hud('#b: '.. #balls)
-end)
+end
 
 function is_hit_by_bullet(ball)
     for i = #bullets, 1, -1 do
@@ -295,9 +310,9 @@ function add_ball(tpid, szid, x, y, dx, dy)
     })
 end
 
--->8
+------------
 -- level
-
+------------
 screen_min_x = 4
 screen_max_x = 124
 screen_min_y = 24
@@ -321,8 +336,7 @@ current_level = nil
 lives_spr = 14
 lives_spr_w = 7
 
--- draw_scene
-register('draw', 'level', function ()
+function draw_level()
     local p1 = players[1]
     local p2 = players[2]
 
@@ -351,7 +365,7 @@ register('draw', 'level', function ()
     end
 
     -- draw_hud()
-end)
+end
 
 function draw_lives(x, y, p)
     local m = p.pwups.respawn.v % 6
@@ -367,14 +381,14 @@ function draw_lives(x, y, p)
     end
 end
 
-register('update', 'level', function ()
-    if (current_level_time.v <= 0) players[1].lives = 0
-end)
-
-
-register('init', 'level', function ()
-    restart_level(1)
-end)
+function update_level()
+    -- level timeout
+    if (current_level_time.v <= 0) then
+        for p in all (players) do
+            p.lives = 0
+        end
+    end
+end
 
 function restart_level(lid)
     lid = lid or current_level

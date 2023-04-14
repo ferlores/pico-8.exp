@@ -15,10 +15,10 @@ function log(...)
     log_to_file(msg)
 end
 
-override = true
+__override = true
 function log_to_file(msg)
-    printh(msg, 'log.txt', override, true)
-    override = false
+    printh(msg, 'log.txt', __override, true)
+    __override = false
 end
 
 function logTable(n, t, i)
@@ -51,22 +51,22 @@ function ident(n)
     return s
 end
 
-hud_msgs = {}
+__hud_msgs = {}
 
 function add_hud(msg)
-    add(hud_msgs, msg)
+    add(__hud_msgs, msg)
 end
 
-max_hud_msg = 5
+__max_hud_msg = 5
 function draw_hud()
     local hud_pos = {10,30}
 
-    for i=min(max_hud_msg, #hud_msgs) - 1, 0, -1 do
-        local m = hud_msgs[#hud_msgs - i]
+    for i=min(__max_hud_msg, #__hud_msgs) - 1, 0, -1 do
+        local m = __hud_msgs[#__hud_msgs - i]
         print(m, hud_pos[1], hud_pos[2], 6)
         hud_pos[2] += 8
     end
-    hud_msgs = {}
+    __hud_msgs = {}
 end
 
 log("starting...")

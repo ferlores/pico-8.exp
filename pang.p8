@@ -4,67 +4,13 @@ __lua__
 -- pang
 -- by ferlores
 
-#include utilities.lua
+#include utils/register_callbacks.lua
+#include utils/debug.lua
 
 -- debug flags
 draw_shapes = false
 
 
-default_mode = '__default'
-current_mode = nil
-__callbacks = {
-    ['init'] = {
-        [default_mode] = {}
-    },
-    ['update'] = {
-        [default_mode] = {}
-    },
-    ['draw'] = {
-        [default_mode] = {}
-    },
-    ['destroy'] = {
-        [default_mode] = {}
-    }
-}
-
-
-function register(cb, mode, f)
-    if (type(mode) == 'function') then
-        f = mode
-        mode = default_mode
-    end
-
-    if (__callbacks[cb][mode] == nil) __callbacks[cb][mode] = {}
-    add(__callbacks[cb][mode], f)
-end
-
-function switch_mode(mode)
-    if (mode == current_mode) return
-
-    current_mode = mode
-    if (current_mode != nil) exec_table(__callbacks['init'][current_mode])
-end
-
-function _init()
-    exec_table(__callbacks['init'][default_mode])
-end
-
-function _update()
-    exec_table(__callbacks['update'][default_mode])
-    if (current_mode != nil) exec_table(__callbacks['update'][current_mode])
-end
-
-function _draw()
-    cls()
-    exec_table(__callbacks['draw'][default_mode])
-    if (current_mode != nil)  exec_table(__callbacks['draw'][current_mode])
-end
-
-function exec_table(t)
-    for f in all(t) do
-        f()
-    end
-end
 
 -->8
 -- player

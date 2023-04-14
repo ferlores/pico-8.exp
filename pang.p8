@@ -434,7 +434,7 @@ function draw_lives(x, y, p)
 end
 
 register('update', 'level', function ()
-    if (current_level_time.v <= 0) players[1].lives = 0 --kill_player(players[1]) --foreach(players, kill_player)
+    if (current_level_time.v <= 0) players[1].lives = 0
 end)
 
 

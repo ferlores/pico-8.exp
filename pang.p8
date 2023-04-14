@@ -83,16 +83,14 @@ register('update', 'level', function ()
         -- move_player
         if (p.dying != nil) then
             local radius = 5
-            -- local progress = lerp(0, 0.75, 1 - p.dying.v/p.dying.m)
-            -- p.x = p.dx + (cos(progress) - 1) * radius
-            -- p.y = p.dy + sin(progress) * radius
-
             local progress = lerp(0, 3, 1 - p.dying.v/p.dying.m)
 
             p.x = p.dx + progress * radius
             p.y = p.dy + ((progress-1)^2 - 1) * radius
 
             if (p.dying.v > 0) all_players_died = false
+
+            -- log(p.x,p.y,p.dx,p.dy, p.dying)
         else
             all_players_died = false
             p.x = mid(screen_min_x, p.x + p.dx, screen_max_x - player_width)
@@ -100,9 +98,25 @@ register('update', 'level', function ()
 
             p.dx *= (1 - p.friction)
             p.dy *= (1 - p.friction)
+
+            if (is_player_hit_by_ball(p)) then
+                if (p.pwups.respawn.v == 0) then
+                    p.lives = max(0, p.lives - 1)  -- loose live
+                    p.pwups.respawn = timer(1)
+                end
+            end
+
+            if (p.lives == 0) then
+                p.pwups.respawn = timer(1)
+                p.dying = timer(0.75)
+
+                -- dx has the initial position
+                p.dx = p.x
+                p.dy = p.y
+            end
         end
 
-        add_hud('p:'..p.x..', '..p.y..', '..p.dx..', '..p.dy)
+
     end
 
     if (all_players_died) then
@@ -133,16 +147,11 @@ function control_player(p, control)
     if (btnp(❎, control)) fire_bullet(p)
 end
 
-function loose_live(p)
-    p.lives -= 1
-    p.pwups.respawn = timer(1)
-
-    if (p.lives == 0) then
-        p.dying = timer(0.75)
-        -- dx has the initial position
-        p.dx = p.x
-        p.dy = p.y
+function is_player_hit_by_ball(p)
+    for b in all(balls) do
+        if (rect_circ_collide(p.x, p.y, p.w, p.h, b.x, b.y, b.sz)) return true
     end
+    return false
 end
 
 function add_player(x, y)
@@ -293,14 +302,6 @@ register('update', 'level', function()
             b.dx *= -btp.bounce
         end
 
-        local pid = is_hit_by_player(b)
-        if (pid != 0) then
-            local pwups = players[pid].pwups
-            if (pwups.respawn.v == 0) then
-                loose_live(players[pid])
-            end
-        end
-
         local bullet_id = is_hit_by_bullet(b)
         if (bullet_id != 0) then
             if (b.szid - 1 > 0) then
@@ -347,16 +348,6 @@ function is_hit_by_bullet(ball)
     return 0
 end
 
-function is_hit_by_player(ball)
-    for i = #players, 1, -1 do
-        local p = players[i]
-        if (rect_circ_collide(p.x, p.y, p.w, p.h, ball.x, ball.y, ball.sz)) then
-            return i
-        end
-    end
-    return 0
-end
-
 function add_ball(tpid, szid, x, y, dx, dy)
     local bt = ball_tp[tpid]
     add(balls, {
@@ -387,10 +378,12 @@ levels = {
                 x = screen_max_x/2,
                 y= screen_min_y + 40
             }
-        }
+        },
+        time = 100,
     }
 }
-current_level = 1
+current_level_time = nil
+current_level = nil
 lives_spr = 14
 lives_spr_w = 7
 
@@ -407,6 +400,11 @@ register('draw', 'level', function ()
         print(p1.points, 12, 2)
         draw_lives(-7, p1.h + 2, p1)
     end
+
+    if (current_level_time.v >= 3 * 30 or current_level_time.v % 6 < 3) then
+        print_centered('time: '.. flr(current_level_time.v / 30))
+    end
+
     camera()
 
     for i = 0, 16 do
@@ -435,12 +433,13 @@ function draw_lives(x, y, p)
     end
 end
 
-function ofst(x, y)
-    return x + dashboard_offset_x, y + dashboard_offset_y
-end
+register('update', 'level', function ()
+    if (current_level_time.v <= 0) players[1].lives = 0 --kill_player(players[1]) --foreach(players, kill_player)
+end)
+
 
 register('init', 'level', function ()
-    restart_level()
+    restart_level(1)
 end)
 
 function restart_level(lid)
@@ -453,6 +452,9 @@ function restart_level(lid)
     for b in all (levels[lid].balls) do
         add_ball(b.tpid, b.szid, b.x, b.y)
     end
+
+    current_level_time = timer(levels[lid].time)
+    current_level = lid
 end
 
 function rect_is_offscreen(x, y, w, h)

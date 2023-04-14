@@ -4,6 +4,7 @@ function log(...)
 
     for v in all(args) do
         if (type(v) == 'table') then
+            log_to_file(msg)
             logTable(v)
             msg = ''
         else

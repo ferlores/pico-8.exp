@@ -10,12 +10,14 @@ register('update', 'level', function()
     move_players()
     move_bullets()
     move_balls()
+    move_pwup()
 end)
 
 register('draw', 'level', function()
     draw_players()
     draw_bullets()
     draw_balls()
+    draw_pwup()
     draw_level()
 end)
 
@@ -60,6 +62,8 @@ function move_players()
                 end
             end
 
+            collect_pwup(p)
+
             if (p.lives == 0) then
                 p.pwups.respawn = timer(1)
                 p.dying = timer(0.75)
@@ -101,7 +105,7 @@ function add_player(x, y)
         dy = 0,
         speed = player_speed,
         friction = player_friction,
-        weapon = 1,
+        wpid = 1,
         h = player_height,
         w = player_width,
         lives = 3,
@@ -128,11 +132,53 @@ function draw_players()
     end
 end
 
+-----------
+-- pwups
+-----------
+pwups = {}
+
+function add_pwup(x, y)
+    -- 30% cahnce of dropping
+    if (flr(rnd(11)) >= 3) return
+
+    local wpid = (flr(rnd(#weapons) * 100) % #weapons) + 1
+    local wp = weapons[wpid]
+
+    add(pwups, {
+        wpid = wpid,
+        x = x,
+        y = y,
+        dy = 1,
+        spr = wp.drop.spr,
+        w = wp.drop.w,
+        h = wp.drop.h
+    })
+end
+
+function move_pwup(x, y)
+    for pwup in all(pwups) do
+        pwup.y = min(pwup.y + pwup.dy, screen_max_y - pwup.h)
+    end
+end
+
+function draw_pwup()
+    for pwup in all(pwups) do
+        spr(pwup.spr, pwup.x, pwup.y)
+    end
+end
+
+function collect_pwup(p)
+    for k, pwup in pairs(pwups) do
+        if (rect_rect_collide(p.x, p.y, p.w, p.h, pwup.x, pwup.y, pwup.w, pwup.h)) then
+            p.wpid = pwup.wpid
+            deli(pwups, k)
+        end
+    end
+end
 
 ------------
 -- bullets
 ------------
-max_bullets = 1
 bullets = {}
 weapons = {
     [1] =  {
@@ -142,23 +188,44 @@ weapons = {
         dx = 0,
         dy = 3,
         w = 5,
-        h = 16
+        h = 16,
+        max_bullets = 1,
+        drop = {
+            spr = 54,
+            w = 5,
+            h = 4
+        }
+    },
+    [2] =  {
+        sprx = 0,
+        spry = 8,
+        sfx = 0,
+        dx = 0,
+        dy = 3,
+        w = 5,
+        h = 16,
+        max_bullets = 2,
+        drop = {
+            spr = 48,
+            w = 7,
+            h = 4
+        }
     }
 }
 
 function fire_bullet(p)
-    if (#bullets >= max_bullets) return
+    local w = weapons[p.wpid]
+    if (#bullets >= w.max_bullets) return
 
     -- enable firing animation
     p.firing = timer(0.5)
 
-    local w = weapons[p.weapon]
     add(bullets, {
         x = p.x + player_width/2 - w.w/2,
         y = p.y - player_height - 5,
         dx = w.dx,
         dy = w.dy,
-        tp = p.weapon,
+        tp = p.wpid,
         w = w.w,
         h = w.h,
         p = p -- player
@@ -258,6 +325,8 @@ function move_balls()
                 add_ball(b.tpid, b.szid - 1, b.x, b.y, b.dx, b.dy)
                 add_ball(b.tpid, b.szid - 1, b.x, b.y, -b.dx, b.dy)
             end
+
+            add_pwup(b.x, b.y)
 
             bullets[bullet_id].p.points += (#ball_sizes + 1 - b.szid) * 50
             deli(bullets, bullet_id)
@@ -396,6 +465,7 @@ function restart_level(lid)
 
     -- clean up level
     balls = {}
+    pwups = {}
 
     for b in all (levels[lid].balls) do
         add_ball(b.tpid, b.szid, b.x, b.y)
